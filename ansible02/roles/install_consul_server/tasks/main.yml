@@ -1,0 +1,87 @@
+---
+- name: Install necessary packages for Consul
+  apt:
+    name: [curl, unzip]
+    state: present
+    update_cache: yes
+
+- name: Copy Consul binary from synced folder to /tmp on VM
+  copy:
+    src: /vagrant/consul_1.20.0_linux_amd64.zip
+    dest: /tmp/consul.zip
+
+- name: Unzip Consul binary
+  unarchive:
+    src: /tmp/consul.zip
+    dest: /usr/local/bin
+    remote_src: yes
+    mode: '0755'
+
+- name: Create consul user and group
+  user:
+    name: consul
+    create_home: no
+    system: yes
+    shell: /bin/false
+
+- name: Create Consul data and configuration directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: consul
+    group: consul
+    mode: '0755'
+  with_items:
+    - /opt/consul
+    - /opt/consul/data
+    - /etc/consul.d
+
+- name: Ensure consul user owns the directories
+  file:
+    path: "{{ item }}"
+    owner: consul
+    group: consul
+    recurse: yes
+  with_items:
+    - /opt/consul
+    - /opt/consul/data
+    - /etc/consul.d
+
+- name: Copy Consul server configuration file
+  copy:
+    src: /vagrant/consul_config/consul_server.hcl
+    dest: /etc/consul.d/consul.hcl
+    owner: consul
+    group: consul
+    mode: '0644'
+
+- name: Create Consul systemd service
+  copy:
+    content: |
+      [Unit]
+      Description=Consul Service
+      After=network.target
+
+      [Service]
+      ExecStart=/usr/local/bin/consul agent -server -bootstrap-expect=1 -data-dir=/opt/consul/data -config-dir=/etc/consul.d -bind=192.168.56.10 -client=0.0.0.0
+      Restart=on-failure
+      User=consul
+      Group=consul
+      LimitNOFILE=65536
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/consul.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd manager configuration
+  command: systemctl daemon-reload
+
+- name: Enable and start Consul service
+  systemd:
+    name: consul
+    enabled: yes
+    state: started
+

@@ -1,0 +1,20 @@
+{
+  "service": {
+    "name": "postgres",
+    "port": 5432,
+    "connect": {
+      "sidecar_service": {
+        "proxy": {
+          "config": {
+            "enable_transparent_proxy": true,
+            "transparent_proxy": {
+              "allow_local_server": true,
+              "allow_local_client": true
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

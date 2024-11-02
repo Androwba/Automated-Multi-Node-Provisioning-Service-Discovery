@@ -1,0 +1,30 @@
+---
+- hosts: manager
+  become: yes
+  tasks:
+    - name: Update apt package manager
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Install Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Copy docker-compose.yml to services directory
+      copy:
+        src: /home/vagrant/docker-compose.yml
+        dest: /home/vagrant/services/docker-compose.yml
+        owner: vagrant
+        group: vagrant
+
+    - name: Deploy the microservice application using Docker Compose
+      command: docker-compose up -d
+      args:
+        chdir: /home/vagrant/services
+

@@ -1,0 +1,41 @@
+---
+- name: Install Docker
+  apt:
+    name: docker.io
+    state: present
+    update_cache: yes
+
+- name: Ensure the latest Docker Compose version is installed
+  get_url:
+    url: "https://github.com/docker/compose/releases/download/2.29.7/docker-compose-Linux-x86_64"
+    dest: /usr/local/bin/docker-compose
+    mode: '0755'
+
+- name: Create services and database directories if they do not exist
+  file:
+    path: /home/vagrant/services/database
+    state: directory
+    owner: vagrant
+    group: vagrant
+    mode: '0755'
+    recurse: yes
+
+- name: Copy init.sql to the database directory
+  copy:
+    src: /home/vagrant/services/database/init.sql
+    dest: /home/vagrant/services/database/init.sql
+    owner: vagrant
+    group: vagrant
+
+- name: Copy docker-compose.yml to services directory
+  copy:
+    src: /home/vagrant/docker-compose.yml
+    dest: /home/vagrant/services/docker-compose.yml
+    owner: vagrant
+    group: vagrant
+
+- name: Deploy the remaining microservices using Docker Compose
+  command: docker-compose up -d
+  args:
+    chdir: /home/vagrant/services
+

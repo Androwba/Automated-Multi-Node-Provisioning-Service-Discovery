@@ -1,0 +1,12 @@
+---
+- hosts: application
+  become: yes
+  roles:
+    - { role: application, tags: application }
+
+- hosts: database_servers
+  become: yes
+  roles:
+    - { role: apache, tags: apache }
+    - { role: postgres, tags: postgres }
+

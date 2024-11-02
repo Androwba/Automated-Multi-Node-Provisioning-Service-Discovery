@@ -1,0 +1,34 @@
+---
+- hosts: consul_server
+  become: yes
+  roles:
+    - role: install_consul_server
+      tags: consul_server
+
+- hosts: api,db
+  become: yes
+  roles:
+    - role: install_consul_client
+      tags: consul_client
+
+- hosts: db
+  become: yes
+  roles:
+    - role: install_db
+      tags: db
+
+- hosts: api
+  become: yes
+  roles:
+    - role: install_hotels_service
+      tags: hotels_service
+
+- hosts: api
+  become: yes
+  vars:
+    postgres_user: "postgres"
+    database_name: "hotels_db"
+  roles:
+    - role: crud_tests
+      tags: crud
+

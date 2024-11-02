@@ -1,0 +1,21 @@
+---
+- name: Install PostgreSQL and Python dependencies
+  apt:
+    name: 
+      - postgresql
+      - python3-psycopg2
+    state: present
+    update_cache: yes
+
+- name: Ensure PostgreSQL is running and enabled on boot
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Create hotels_db database
+  become_user: postgres
+  postgresql_db:
+    name: hotels_db
+    state: present
+

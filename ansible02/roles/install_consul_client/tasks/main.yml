@@ -1,0 +1,118 @@
+---
+- name: Install necessary packages for Consul and Envoy
+  apt:
+    name:
+      - wget
+      - unzip
+      - curl
+    state: present
+    update_cache: yes
+
+- name: Copy Consul binary
+  copy:
+    src: /vagrant/consul_1.20.0_linux_amd64.zip
+    dest: /tmp/consul.zip
+
+- name: Unzip Consul binary
+  unarchive:
+    src: /tmp/consul.zip
+    dest: /usr/local/bin
+    remote_src: yes
+    mode: '0755'
+
+- name: Download Envoy binary from GitHub
+  get_url:
+    url: https://github.com/envoyproxy/envoy/releases/download/v1.30.6/envoy-contrib-1.30.6-linux-x86_64
+    dest: /usr/local/bin/envoy
+    mode: '0755'
+
+- name: Create consul user and group
+  user:
+    name: consul
+    create_home: no
+    system: yes
+    shell: /bin/false
+
+- name: Create Consul data and configuration directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: consul
+    group: consul
+    mode: '0755'
+  loop:
+    - /opt/consul
+    - /opt/consul/data
+    - /etc/consul.d
+
+- name: Copy Consul client configuration file
+  template:
+    src: /vagrant_data/consul_config/consul_client.hcl
+    dest: /etc/consul.d/consul.hcl
+    owner: consul
+    group: consul
+    mode: '0644'
+
+- name: Create Consul systemd service
+  copy:
+    content: |
+      [Unit]
+      Description=Consul Client Service
+      After=network.target
+
+      [Service]
+      ExecStart=/usr/local/bin/consul agent -config-dir=/etc/consul.d
+      Restart=on-failure
+      User=consul
+      Group=consul
+      LimitNOFILE=65536
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/consul.service
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd manager configuration
+  command: systemctl daemon-reload
+
+- name: Enable and start Consul service
+  systemd:
+    name: consul
+    enabled: yes
+    state: started
+
+- name: Set service_name for Consul Envoy Sidecar
+  set_fact:
+    service_name: "{{ 'postgres' if 'db' in group_names else 'hotel-service' }}"
+
+- name: Create Envoy sidecar systemd service
+  copy:
+    dest: /etc/systemd/system/consul-envoy.service
+    content: |
+        [Unit]
+        Description=Consul Envoy Sidecar for {{ service_name }}
+        After=network.target consul.service
+
+        [Service]
+        ExecStart=/usr/local/bin/consul connect proxy -sidecar-for {{ service_name }}
+        Restart=on-failure
+        User=root
+        LimitNOFILE=65536
+
+        [Install]
+        WantedBy=multi-user.target
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd manager configuration
+  command: systemctl daemon-reload
+
+- name: Enable and start Envoy sidecar service
+  systemd:
+    name: consul-envoy.service
+    enabled: yes
+    state: started
+

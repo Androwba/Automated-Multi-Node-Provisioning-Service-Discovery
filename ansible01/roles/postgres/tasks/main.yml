@@ -1,0 +1,30 @@
+- name: Install PostgreSQL
+  apt:
+    name: postgresql
+    state: present
+    update_cache: yes
+  become: yes
+
+- name: Start and enable PostgreSQL service
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+  become: yes
+
+- name: Create a new database if it doesn't exist
+  shell: |
+    psql -tc "SELECT 1 FROM pg_database WHERE datname = 'mydb'" | grep -q 1 || psql -c "CREATE DATABASE mydb;"
+  become: yes
+  become_user: postgres
+
+- name: Create a new table in the database
+  command: "psql -d mydb -c 'CREATE TABLE IF NOT EXISTS test_table (id SERIAL PRIMARY KEY, name VARCHAR(50));'"
+  become: yes
+  become_user: postgres
+
+- name: Insert three records into the table if they don't already exist
+  command: "psql -d mydb -c \"INSERT INTO test_table (name) SELECT unnest(ARRAY['Androwba', 'DevOps', 'Ansible']) WHERE NOT EXISTS (SELECT 1 FROM test_table WHERE name IN ('Androwba', 'DevOps', 'Ansible'));\""
+  become: yes
+  become_user: postgres
+

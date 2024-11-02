@@ -1,0 +1,33 @@
+---
+- name: Create a new hotel record
+  postgresql_query:
+    db: "{{ database_name }}"
+    login_host: "localhost"
+    login_user: "{{ postgres_user }}"
+    query: "INSERT INTO hotels (hotel_id, address, cost, hotel_uid, hotel_name, rooms, city_id) VALUES (4000, 'Address 4', 4500, gen_random_uuid(), 'Hotel 4', 150, 1000);"
+  register: insert_result
+
+- name: Delay for checking insert operation
+  wait_for:
+    timeout: 10
+
+- name: Update the hotel record
+  postgresql_query:
+    db: "{{ database_name }}"
+    login_host: "localhost"
+    login_user: "{{ postgres_user }}"
+    query: "UPDATE hotels SET cost = 5000 WHERE hotel_id = 4000;"
+  register: update_result
+
+- name: Delay for checking update operation
+  wait_for:
+    timeout: 10
+
+- name: Delete the hotel record
+  postgresql_query:
+    db: "{{ database_name }}"
+    login_host: "localhost"
+    login_user: "{{ postgres_user }}"
+    query: "DELETE FROM hotels WHERE hotel_id = 4000;"
+  register: delete_result
+

@@ -1,0 +1,19 @@
+---
+- name: Install Apache web server
+  apt:
+    name: apache2
+    state: present
+    update_cache: yes
+
+- name: Ensure Apache is running and enabled at boot
+  service:
+    name: apache2
+    state: started
+    enabled: yes
+
+- name: Create a simple index.html page
+  copy:
+    content: "<html><body><h1>Apache Server on Node02</h1></body></html>"
+    dest: /var/www/html/index.html
+    mode: '0644'
+
